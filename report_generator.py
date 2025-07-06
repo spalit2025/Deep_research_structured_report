@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 # Import our custom modules
 from config import ReportConfig, get_config
 from utils.prompt_loader import PromptLoader
+from utils.json_parser import parse_report_plan, parse_search_queries
 
 # Load environment variables
 load_dotenv()
@@ -91,14 +92,14 @@ class ImprovedReportGenerator:
                 messages=[{"role": "user", "content": prompt}]
             )
             
-            # Extract JSON from response
+            # Extract JSON from response using robust parser
             content = response.content[0].text
-            start_idx = content.find('{')
-            end_idx = content.rfind('}') + 1
-            json_str = content[start_idx:end_idx]
+            plan_data = parse_report_plan(content)
             
-            plan_data = json.loads(json_str)
-            return ReportPlan(**plan_data)
+            if plan_data:
+                return ReportPlan(**plan_data)
+            else:
+                raise ValueError("Failed to parse report plan JSON")
             
         except Exception as e:
             print(f"⚠️ Error in planning, using fallback: {e}")
@@ -164,11 +165,12 @@ class ImprovedReportGenerator:
             )
             
             content = response.content[0].text
-            start_idx = content.find('[')
-            end_idx = content.rfind(']') + 1
-            queries_str = content[start_idx:end_idx]
+            queries = parse_search_queries(content)
             
-            return json.loads(queries_str)
+            if queries:
+                return queries
+            else:
+                raise ValueError("Failed to parse search queries JSON")
             
         except Exception as e:
             print(f"⚠️ Error generating queries, using fallback: {e}")
