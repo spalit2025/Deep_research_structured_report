@@ -6,6 +6,7 @@ An AI-powered research report generator that creates comprehensive, structured r
 
 - **Multiple Report Templates**: Business, Academic, Technical, Quick, and Standard formats
 - **AI-Powered Research**: Automated web search and information gathering
+- **Smart Token Management**: Optimizes content for context windows with intelligent truncation
 - **Rich Output**: Professional markdown reports with citations and sources
 - **Interactive Mode**: User-friendly CLI interface with rich console output
 - **Built-in Rate Limiting**: Automatic API rate limiting prevents service interruptions
@@ -101,6 +102,26 @@ The application includes built-in rate limiting to prevent API service interrupt
 - **Retry Mechanisms**: Exponential backoff for failed requests (up to 3 retries)
 - **Configurable**: Rate limits can be adjusted in configuration settings
 - **No Batch Mode**: Removed to prevent rapid successive calls that trigger rate limits
+
+## Smart Token Management
+
+The application includes intelligent context window management to prevent token limit overruns:
+
+- **Dynamic Source Optimization**: Automatically adjusts source content length based on context window
+- **Intelligent Truncation**: Preserves complete sentences and paragraphs when possible
+- **Template-Specific Limits**: Different token budgets for different report types
+- **Usage Monitoring**: Real-time token usage reporting with warnings for high usage
+- **Fallback Strategies**: Graceful degradation when content exceeds limits
+
+### Token Management Features
+
+| Feature | Description |
+|---------|-------------|
+| **Context Window Support** | Supports Claude 3.5 Sonnet (200k tokens) and other models |
+| **Dynamic Source Allocation** | Distributes 60-70% of available tokens to research sources |
+| **Intelligent Truncation** | Preserves sentence and paragraph boundaries when truncating |
+| **Template Optimization** | Academic reports get more source content than quick reports |
+| **Usage Reporting** | Shows token usage percentage and warns at 85%+ usage |
 
 ## Output
 

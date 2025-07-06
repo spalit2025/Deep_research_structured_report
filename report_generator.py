@@ -18,6 +18,7 @@ from config import ReportConfig, get_config
 from utils.prompt_loader import PromptLoader
 from utils.json_parser import parse_report_plan, parse_search_queries
 from utils.rate_limiter import get_rate_limiter
+from utils.token_manager import create_token_manager, TokenManager
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +47,13 @@ class ImprovedReportGenerator:
         
         # Initialize rate limiter
         self.rate_limiter = get_rate_limiter(self.config.settings)
+        
+        # Initialize token manager
+        if self.config.get("enable_token_management", True):
+            model_name = self.config.get("token_model_name", self.config.get("model"))
+            self.token_manager = create_token_manager(model_name)
+        else:
+            self.token_manager = None
         
         # Validate API keys
         if not os.getenv('ANTHROPIC_API_KEY'):
@@ -231,15 +239,33 @@ class ImprovedReportGenerator:
         return unique_results[:total_limit]
     
     async def _write_section_with_sources(self, section: Section, search_results: List[Dict], topic: str) -> str:
-        """Write section content using prompt loader"""
-        
-        # Format search results
-        sources_text = self._format_sources(search_results)
+        """Write section content using prompt loader with token management"""
         
         # Determine section type for appropriate prompting
         section_type = self._determine_section_type(section.title)
         
-        # Get the appropriate writing prompt
+        # Get the appropriate writing prompt (without sources first)
+        initial_prompt = self.prompt_loader.get_section_writing_prompt(
+            section.title, section.description, topic, "", section_type
+        )
+        
+        # Optimize sources for context window if token management is enabled
+        if self.token_manager:
+            optimized_sources, token_usage = self.token_manager.optimize_sources_for_context(
+                search_results, initial_prompt
+            )
+            sources_text = self.token_manager.format_optimized_sources(optimized_sources)
+            
+            # Show token usage if reporting is enabled
+            if self.config.get("token_enable_usage_reporting", True):
+                print(f"📊 Token usage for {section.title}: {token_usage.usage_percentage:.1f}%")
+                if token_usage.usage_percentage > 85:
+                    print(f"⚠️ High token usage detected for {section.title}")
+        else:
+            # Fallback to original method
+            sources_text = self._format_sources(search_results)
+        
+        # Get the final prompt with optimized sources
         prompt = self.prompt_loader.get_section_writing_prompt(
             section.title, section.description, topic, sources_text, section_type
         )
@@ -263,13 +289,16 @@ class ImprovedReportGenerator:
             return f"## {section.title}\n\nContent for {section.description} could not be generated due to an error."
     
     def _format_sources(self, search_results: List[Dict]) -> str:
-        """Format search results for prompt inclusion"""
+        """Format search results for prompt inclusion (fallback method)"""
         sources_text = ""
         max_sources = self.config.get("max_sources_per_section", 8)
         
+        # Use configurable source content limit
+        max_source_content = self.config.get("token_max_source_content", 500)
+        
         for i, result in enumerate(search_results[:max_sources], 1):
             title = result.get('title', 'Unknown')
-            content = result.get('content', result.get('raw_content', ''))[:500]
+            content = result.get('content', result.get('raw_content', ''))[:max_source_content]
             url = result.get('url', '')
             
             sources_text += f"\nSource {i}: {title}\nURL: {url}\nContent: {content}\n---"

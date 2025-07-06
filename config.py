@@ -49,6 +49,16 @@ class ReportConfig:
         "max_retries": 3,
         "retry_base_delay": 1.0,
         "retry_max_delay": 60.0,
+        
+        # Token management settings
+        "enable_token_management": True,
+        "token_model_name": "claude-3-5-sonnet-20241022",
+        "token_response_buffer": 2000,         # tokens reserved for response
+        "token_sources_percentage": 0.6,       # 60% of available tokens for sources
+        "token_min_source_content": 200,       # minimum chars per source
+        "token_max_source_content": 1000,      # maximum chars per source
+        "token_min_sources": 3,                # minimum number of sources to include
+        "token_enable_usage_reporting": True   # show token usage reports
     }
     
     def __init__(self, custom_settings: Dict[str, Any] = None):
@@ -86,6 +96,8 @@ BUSINESS_CONFIG = ReportConfig({
     "section_word_count": "400-600",
     "executive_summary_word_count": "250-350",
     "max_search_results": 5,
+    "token_max_source_content": 800,  # Longer content for business analysis
+    "token_sources_percentage": 0.65,  # More sources for comprehensive analysis
 })
 
 ACADEMIC_CONFIG = ReportConfig({
@@ -95,6 +107,8 @@ ACADEMIC_CONFIG = ReportConfig({
     "conclusion_word_count": "200-300",
     "max_search_results": 6,
     "search_depth": "advanced",
+    "token_max_source_content": 1200,  # Longer content for detailed research
+    "token_sources_percentage": 0.7,   # More sources for academic rigor
 })
 
 TECHNICAL_CONFIG = ReportConfig({
@@ -102,6 +116,8 @@ TECHNICAL_CONFIG = ReportConfig({
     "section_word_count": "400-600", 
     "max_search_results": 5,
     "max_sources_per_section": 10,
+    "token_max_source_content": 1000,  # Detailed technical content
+    "token_sources_percentage": 0.65,  # Balance between sources and prompt
 })
 
 QUICK_CONFIG = ReportConfig({
@@ -110,6 +126,8 @@ QUICK_CONFIG = ReportConfig({
     "intro_word_count": "100-150",
     "conclusion_word_count": "100-150", 
     "max_search_results": 3,
+    "token_max_source_content": 400,   # Shorter content for quick generation
+    "token_sources_percentage": 0.5,   # Less sources for speed
 })
 
 # Configuration presets
