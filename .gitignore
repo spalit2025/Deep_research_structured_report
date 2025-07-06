@@ -1,0 +1,23 @@
+# Environment and API keys
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.idea/
+.vscode/
+*.log
+
+# Generated reports (optional - you might want to track some)
+generated_reports/
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
