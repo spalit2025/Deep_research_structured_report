@@ -139,49 +139,7 @@ async def interactive_mode():
             if not retry:
                 break
 
-async def batch_mode(topics: list, template: str = "standard"):
-    """Generate multiple reports in batch"""
-    
-    console.print(f"[green]🔄 Batch generating {len(topics)} {template} reports...[/green]")
-    
-    results = []
-    for i, topic in enumerate(topics, 1):
-        console.print(f"\n[cyan]📝 Report {i}/{len(topics)}: {topic}[/cyan]")
-        
-        try:
-            with console.status(f"[bold green]Generating report {i}..."):
-                if template == "business":
-                    report = await generate_business_report(topic)
-                elif template == "academic":
-                    report = await generate_academic_report(topic)
-                elif template == "technical":
-                    report = await generate_technical_report(topic)
-                elif template == "quick":
-                    report = await generate_quick_report(topic)
-                else:
-                    config = get_config(template)
-                    generator = ImprovedReportGenerator(config)
-                    report = await generator.generate_report(topic)
-            
-            # Save report
-            config = get_config(template)
-            generator = ImprovedReportGenerator(config)
-            safe_topic = topic.replace(" ", "_").replace(",", "").lower()
-            filename = generator.save_report(report, f"{template}_{safe_topic}.md")
-            
-            console.print(f"[green]✅ Saved: {filename}[/green]")
-            results.append((topic, filename))
-            
-        except Exception as e:
-            console.print(f"[red]❌ Error generating report for '{topic}': {e}[/red]")
-            results.append((topic, None))
-    
-    # Summary
-    console.print(f"\n[bold green]📊 Batch generation complete![/bold green]")
-    successful = len([r for r in results if r[1] is not None])
-    console.print(f"[green]✅ {successful}/{len(topics)} reports generated successfully[/green]")
-    
-    return results
+
 
 async def single_report_mode(topic: str, template: str = "standard"):
     """Generate a single report for the given topic"""
@@ -234,11 +192,11 @@ python main.py
 python main.py "Your Topic Here"
 python main.py "AI in Healthcare" --template business
 
-[yellow]Batch mode:[/yellow]
-python main.py --batch "Topic 1" "Topic 2" "Topic 3" --template academic
-
 [yellow]Available templates:[/yellow]
-standard, business, academic, technical, quick""",
+standard, business, academic, technical, quick
+
+[yellow]Rate Limiting:[/yellow]
+Built-in rate limiting prevents API limit issues automatically.""",
         title="📖 Help"
     ))
 
@@ -261,14 +219,8 @@ def main():
             args.pop(template_idx)  # Remove --template
             args.pop(template_idx)  # Remove template value
     
-    # Check for batch mode
-    if "--batch" in args:
-        args.remove("--batch")
-        if args:
-            asyncio.run(batch_mode(args, template))
-        else:
-            console.print("[red]No topics provided for batch mode[/red]")
-    elif args:
+    # Generate report based on arguments
+    if args:
         # Single report mode
         topic = " ".join(args)
         asyncio.run(single_report_mode(topic, template))

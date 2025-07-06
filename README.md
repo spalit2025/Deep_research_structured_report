@@ -8,7 +8,7 @@ An AI-powered research report generator that creates comprehensive, structured r
 - **AI-Powered Research**: Automated web search and information gathering
 - **Rich Output**: Professional markdown reports with citations and sources
 - **Interactive Mode**: User-friendly CLI interface with rich console output
-- **Batch Processing**: Generate multiple reports at once
+- **Built-in Rate Limiting**: Automatic API rate limiting prevents service interruptions
 - **Customizable**: Configurable templates and sections
 
 ## Quick Start
@@ -42,9 +42,6 @@ An AI-powered research report generator that creates comprehensive, structured r
    
    # Use specific template
    python main.py "AI in healthcare" --template business
-   
-   # Batch mode
-   python main.py --batch "Topic 1" "Topic 2" "Topic 3" --template academic
    ```
 
 ## Available Templates
@@ -61,8 +58,11 @@ An AI-powered research report generator that creates comprehensive, structured r
 # Generate a business report on AI in accounting
 python main.py "application of gen ai in corporate accounting" --template business
 
-# Generate multiple academic reports
-python main.py --batch "Machine Learning in Finance" "AI Ethics" "Quantum Computing" --template academic
+# Generate a technical report
+python main.py "Machine Learning in Finance" --template technical
+
+# Generate a quick report
+python main.py "AI Ethics Overview" --template quick
 ```
 
 ## Project Structure
@@ -92,6 +92,15 @@ The application uses a flexible configuration system that allows customization o
 
 - **Anthropic API**: For Claude AI text generation
 - **Tavily API**: For web search capabilities
+
+## Rate Limiting & Reliability
+
+The application includes built-in rate limiting to prevent API service interruptions:
+
+- **Automatic Delays**: 1.0s between Anthropic calls, 0.5s between Tavily calls
+- **Retry Mechanisms**: Exponential backoff for failed requests (up to 3 retries)
+- **Configurable**: Rate limits can be adjusted in configuration settings
+- **No Batch Mode**: Removed to prevent rapid successive calls that trigger rate limits
 
 ## Output
 

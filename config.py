@@ -38,6 +38,17 @@ class ReportConfig:
         # Prompt settings
         "prompt_version": "default",
         "language": "english",
+        
+        # Rate limiting settings
+        "enable_rate_limiting": True,
+        "anthropic_rate_limit_delay": 1.0,  # Seconds between Anthropic API calls
+        "tavily_rate_limit_delay": 0.5,     # Seconds between Tavily API calls
+        
+        # Retry settings
+        "enable_retries": True,
+        "max_retries": 3,
+        "retry_base_delay": 1.0,
+        "retry_max_delay": 60.0,
     }
     
     def __init__(self, custom_settings: Dict[str, Any] = None):

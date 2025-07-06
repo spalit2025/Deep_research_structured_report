@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from config import ReportConfig, get_config
 from utils.prompt_loader import PromptLoader
 from utils.json_parser import parse_report_plan, parse_search_queries
+from utils.rate_limiter import get_rate_limiter
 
 # Load environment variables
 load_dotenv()
@@ -42,6 +43,9 @@ class ImprovedReportGenerator:
         # Initialize API clients
         self.anthropic = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
         self.tavily = TavilyClient(api_key=os.getenv('TAVILY_API_KEY'))
+        
+        # Initialize rate limiter
+        self.rate_limiter = get_rate_limiter(self.config.settings)
         
         # Validate API keys
         if not os.getenv('ANTHROPIC_API_KEY'):
@@ -85,12 +89,16 @@ class ImprovedReportGenerator:
         prompt = self.prompt_loader.get_structure_prompt(topic)
         
         try:
-            response = self.anthropic.messages.create(
-                model=self.config.get("model"),
-                max_tokens=self.config.get("max_tokens", 1500),
-                temperature=self.config.get("temperature", 0),
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # Create async wrapper for Anthropic API call
+            async def anthropic_call():
+                return self.anthropic.messages.create(
+                    model=self.config.get("model"),
+                    max_tokens=self.config.get("max_tokens", 1500),
+                    temperature=self.config.get("temperature", 0),
+                    messages=[{"role": "user", "content": prompt}]
+                )
+            
+            response = await self.rate_limiter.call_anthropic_api(anthropic_call)
             
             # Extract JSON from response using robust parser
             content = response.content[0].text
@@ -157,12 +165,16 @@ class ImprovedReportGenerator:
         )
 
         try:
-            response = self.anthropic.messages.create(
-                model=self.config.get("model"),
-                max_tokens=500,
-                temperature=self.config.get("temperature", 0),
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # Create async wrapper for Anthropic API call
+            async def anthropic_call():
+                return self.anthropic.messages.create(
+                    model=self.config.get("model"),
+                    max_tokens=500,
+                    temperature=self.config.get("temperature", 0),
+                    messages=[{"role": "user", "content": prompt}]
+                )
+            
+            response = await self.rate_limiter.call_anthropic_api(anthropic_call)
             
             content = response.content[0].text
             queries = parse_search_queries(content)
@@ -186,12 +198,17 @@ class ImprovedReportGenerator:
         for query in queries:
             try:
                 print(f"🔍 Searching: {query}")
-                results = self.tavily.search(
-                    query=query,
-                    search_depth=search_depth,
-                    max_results=max_results,
-                    include_raw_content=True
-                )
+                
+                # Create async wrapper for Tavily API call
+                async def tavily_call():
+                    return self.tavily.search(
+                        query=query,
+                        search_depth=search_depth,
+                        max_results=max_results,
+                        include_raw_content=True
+                    )
+                
+                results = await self.rate_limiter.call_tavily_api(tavily_call)
                 
                 if 'results' in results:
                     all_results.extend(results['results'])
@@ -228,12 +245,16 @@ class ImprovedReportGenerator:
         )
 
         try:
-            response = self.anthropic.messages.create(
-                model=self.config.get("model"),
-                max_tokens=self.config.get("max_tokens", 2000),
-                temperature=self.config.get("temperature", 0),
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # Create async wrapper for Anthropic API call
+            async def anthropic_call():
+                return self.anthropic.messages.create(
+                    model=self.config.get("model"),
+                    max_tokens=self.config.get("max_tokens", 2000),
+                    temperature=self.config.get("temperature", 0),
+                    messages=[{"role": "user", "content": prompt}]
+                )
+            
+            response = await self.rate_limiter.call_anthropic_api(anthropic_call)
             
             return response.content[0].text
             
@@ -289,12 +310,16 @@ class ImprovedReportGenerator:
         )
 
         try:
-            response = self.anthropic.messages.create(
-                model=self.config.get("model"),
-                max_tokens=1000,
-                temperature=self.config.get("temperature", 0),
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # Create async wrapper for Anthropic API call
+            async def anthropic_call():
+                return self.anthropic.messages.create(
+                    model=self.config.get("model"),
+                    max_tokens=1000,
+                    temperature=self.config.get("temperature", 0),
+                    messages=[{"role": "user", "content": prompt}]
+                )
+            
+            response = await self.rate_limiter.call_anthropic_api(anthropic_call)
             
             return response.content[0].text
             
