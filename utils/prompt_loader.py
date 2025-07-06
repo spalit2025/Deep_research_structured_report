@@ -78,6 +78,12 @@ class PromptLoader:
             else:
                 prompt = self.writing_prompts.INTRODUCTION_WRITER_PROMPT
         
+        elif section_type == "recommendations":
+            if self.template == "business":
+                prompt = self.writing_prompts.BUSINESS_RECOMMENDATIONS_PROMPT
+            else:
+                prompt = self.writing_prompts.CONCLUSION_WRITER_PROMPT
+        
         elif "conclusion" in section_title.lower() or section_type == "conclusion":
             if self.template == "business":
                 prompt = self.writing_prompts.BUSINESS_RECOMMENDATIONS_PROMPT
