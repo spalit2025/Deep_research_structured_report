@@ -7,6 +7,7 @@ An AI-powered research report generator that creates comprehensive, structured r
 - **Multiple Report Templates**: Business, Academic, Technical, Quick, and Standard formats
 - **AI-Powered Research**: Automated web search and information gathering
 - **Smart Token Management**: Optimizes content for context windows with intelligent truncation
+- **Intelligent Search Caching**: Reduces API calls with similarity-based query caching
 - **Rich Output**: Professional markdown reports with citations and sources
 - **Interactive Mode**: User-friendly CLI interface with rich console output
 - **Built-in Rate Limiting**: Automatic API rate limiting prevents service interruptions
@@ -122,6 +123,26 @@ The application includes intelligent context window management to prevent token 
 | **Intelligent Truncation** | Preserves sentence and paragraph boundaries when truncating |
 | **Template Optimization** | Academic reports get more source content than quick reports |
 | **Usage Reporting** | Shows token usage percentage and warns at 85%+ usage |
+
+## Intelligent Search Caching
+
+The application includes smart caching to avoid repeated API calls for similar queries:
+
+- **Query Similarity Detection**: Automatically detects similar queries across report sections
+- **Persistent Cache**: Saves results to disk with configurable TTL (24 hours default)
+- **Memory Optimization**: In-memory cache with intelligent eviction policies
+- **Performance Monitoring**: Real-time cache hit/miss reporting
+- **Cost Savings**: Reduces API calls and associated costs significantly
+
+### Cache Features
+
+| Feature | Description |
+|---------|-------------|
+| **Similarity Matching** | 75% similarity threshold for intelligent cache hits |
+| **Persistent Storage** | File-based cache survives between sessions |
+| **Automatic Expiration** | 24-hour TTL prevents stale data |
+| **Performance Metrics** | Detailed cache hit rates and savings reporting |
+| **Topic-Aware Caching** | Considers report topic for better cache matching |
 
 ## Output
 

@@ -58,7 +58,16 @@ class ReportConfig:
         "token_min_source_content": 200,       # minimum chars per source
         "token_max_source_content": 1000,      # maximum chars per source
         "token_min_sources": 3,                # minimum number of sources to include
-        "token_enable_usage_reporting": True   # show token usage reports
+        "token_enable_usage_reporting": True,  # show token usage reports
+        
+        # Search result caching settings
+        "enable_search_caching": True,
+        "cache_dir": "cache",                  # directory for cache files
+        "cache_ttl_hours": 24.0,              # cache time-to-live in hours
+        "max_cache_size": 1000,               # maximum number of entries in memory
+        "similarity_threshold": 0.75,         # minimum similarity for cache hits
+        "enable_file_cache": True,            # persist cache to disk
+        "cache_reporting": True               # show cache performance reports
     }
     
     def __init__(self, custom_settings: Dict[str, Any] = None):

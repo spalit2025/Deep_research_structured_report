@@ -19,6 +19,7 @@ from utils.prompt_loader import PromptLoader
 from utils.json_parser import parse_report_plan, parse_search_queries
 from utils.rate_limiter import get_rate_limiter
 from utils.token_manager import create_token_manager, TokenManager
+from utils.search_cache import create_search_cache, SearchCache
 
 # Load environment variables
 load_dotenv()
@@ -55,6 +56,12 @@ class ImprovedReportGenerator:
         else:
             self.token_manager = None
         
+        # Initialize search cache
+        if self.config.get("enable_search_caching", True):
+            self.search_cache = create_search_cache(self.config.settings)
+        else:
+            self.search_cache = None
+        
         # Validate API keys
         if not os.getenv('ANTHROPIC_API_KEY'):
             raise ValueError("ANTHROPIC_API_KEY not found in environment")
@@ -87,6 +94,17 @@ class ImprovedReportGenerator:
         print("📄 Compiling final report...")
         final_report = self._compile_report(plan)
         print("✅ Report generation complete!")
+        
+        # Show cache statistics if enabled
+        if self.search_cache and self.config.get("cache_reporting", True):
+            stats = self.search_cache.get_cache_stats()
+            if stats['total_queries'] > 0:
+                print(f"\n📊 Search Cache Summary:")
+                print(f"   • Total queries: {stats['total_queries']}")
+                print(f"   • Cache hits: {stats['cache_hits']}")
+                print(f"   • Hit rate: {stats['hit_rate']}")
+                if stats['cache_hits'] > 0:
+                    print(f"   • API calls saved: {stats['cache_hits']} 💰")
         
         return final_report
     
@@ -159,8 +177,11 @@ class ImprovedReportGenerator:
         # Generate search queries using prompt loader
         queries = await self._generate_search_queries(section, topic)
         
-        # Search the web
-        search_results = await self._search_web(queries)
+        # Determine section type for caching
+        section_type = self._determine_section_type(section.title)
+        
+        # Search the web with caching
+        search_results = await self._search_web(queries, topic, section_type)
         
         # Write section based on research using appropriate prompt
         return await self._write_section_with_sources(section, search_results, topic)
@@ -196,15 +217,29 @@ class ImprovedReportGenerator:
             print(f"⚠️ Error generating queries, using fallback: {e}")
             return [f"{topic} {section.title}", f"{section.description} 2024"]
     
-    async def _search_web(self, queries: List[str]) -> List[Dict[str, Any]]:
-        """Search web using Tavily with configured parameters"""
+    async def _search_web(self, queries: List[str], topic: str = "", section_type: str = "") -> List[Dict[str, Any]]:
+        """Search web using Tavily with intelligent caching"""
         
         all_results = []
         max_results = self.config.get("max_search_results", 4)
         search_depth = self.config.get("search_depth", "advanced")
         
+        cache_hits = 0
+        cache_misses = 0
+        
         for query in queries:
             try:
+                # Check cache first if enabled
+                if self.search_cache:
+                    cached_results = self.search_cache.get_cached_results(query, topic, section_type)
+                    if cached_results:
+                        cache_hits += 1
+                        print(f"💾 Cache hit: {query}")
+                        all_results.extend(cached_results)
+                        continue
+                
+                # Cache miss - make API call
+                cache_misses += 1
                 print(f"🔍 Searching: {query}")
                 
                 # Create async wrapper for Tavily API call
@@ -219,11 +254,21 @@ class ImprovedReportGenerator:
                 results = await self.rate_limiter.call_tavily_api(tavily_call)
                 
                 if 'results' in results:
-                    all_results.extend(results['results'])
+                    query_results = results['results']
+                    all_results.extend(query_results)
+                    
+                    # Cache the results if caching is enabled
+                    if self.search_cache:
+                        self.search_cache.cache_results(query, query_results, topic, section_type)
                     
             except Exception as e:
                 print(f"⚠️ Search error for '{query}': {e}")
                 continue
+        
+        # Show cache performance if enabled
+        if self.search_cache and self.config.get("cache_reporting", True):
+            if cache_hits > 0:
+                print(f"📊 Cache performance: {cache_hits} hits, {cache_misses} misses")
         
         # Remove duplicates and limit results
         seen_urls = set()

@@ -18,6 +18,9 @@ pip-delete-this-directory.txt
 generated_reports/
 generated_reports/*.md
 
+# Search cache
+cache/
+
 # OS files
 .DS_Store
 Thumbs.db
