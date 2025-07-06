@@ -16,7 +16,7 @@ pip-delete-this-directory.txt
 
 # Generated reports (optional - you might want to track some)
 generated_reports/
-*.md
+generated_reports/*.md
 
 # OS files
 .DS_Store
