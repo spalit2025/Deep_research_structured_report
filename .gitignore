@@ -55,3 +55,11 @@ dist/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Demo and integration files (not needed in main repo)
+integration_demo.py
+observability_demo.py
+OBSERVABILITY_INTEGRATION_COMPLETE.md
+
+# Temporary test files
+run_tests.py

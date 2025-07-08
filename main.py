@@ -20,8 +20,47 @@ from report_generator import (
     generate_quick_report,
     generate_technical_report,
 )
+from utils.observability import (
+    ComponentType,
+    OperationType,
+    get_logger,
+    get_observability_manager,
+    timed_operation,
+)
 
 console = Console()
+
+# Initialize structured logging
+logger = get_logger(ComponentType.REPORT_GENERATOR)
+obs = get_observability_manager()
+
+
+def check_system_health():
+    """Check system health before starting operations"""
+    health = obs.get_health_status()
+
+    logger.info(
+        "System health check",
+        status=health["status"],
+        total_operations=health["total_operations"],
+        error_rate=health["overall_error_rate"],
+    )
+
+    if health["status"] == "unhealthy":
+        console.print(
+            f"[bold red]⚠️ System health: {health['status'].upper()}[/bold red]"
+        )
+        console.print(f"[red]Error rate: {health['overall_error_rate']:.1%}[/red]")
+        return False
+    elif health["status"] == "degraded":
+        console.print(f"[yellow]⚠️ System health: {health['status'].upper()}[/yellow]")
+        console.print(
+            f"[yellow]Error rate: {health['overall_error_rate']:.1%}[/yellow]"
+        )
+    else:
+        console.print(f"[green]✅ System health: {health['status'].upper()}[/green]")
+
+    return True
 
 
 def show_template_options():
@@ -60,8 +99,22 @@ def show_template_options():
     console.print(table)
 
 
+@timed_operation(
+    "interactive_session",
+    ComponentType.REPORT_GENERATOR,
+    OperationType.REPORT_GENERATION,
+)
 async def interactive_mode():
     """Enhanced interactive mode with template selection"""
+
+    logger.info("Starting interactive mode")
+
+    # Check system health before starting
+    if not check_system_health():
+        console.print(
+            "[red]System is unhealthy. Please check logs and try again.[/red]"
+        )
+        return
 
     console.print(
         Panel.fit(
@@ -93,6 +146,15 @@ async def interactive_mode():
                 continue
 
             # Generate report based on template choice
+            user_id = f"user_{hash(topic) % 10000}"  # Simple user ID for demo
+
+            logger.info(
+                "Starting report generation request",
+                topic=topic,
+                template=template_choice,
+                user_id=user_id,
+            )
+
             console.print(
                 f"\n[green]Generating {template_choice} report on: {topic}[/green]"
             )
@@ -109,7 +171,7 @@ async def interactive_mode():
                 else:
                     config = get_config("standard")
                     generator = ImprovedReportGenerator(config)
-                    report = await generator.generate_report(topic)
+                    report = await generator.generate_report(topic, user_id=user_id)
 
             # Save report
             config = get_config(template_choice)
@@ -146,19 +208,48 @@ async def interactive_mode():
                 break
 
         except KeyboardInterrupt:
+            logger.info("Interactive session cancelled by user")
             console.print("\n\n[yellow]Operation cancelled.[/yellow]")
             break
         except Exception as e:
+            logger.error(
+                "Interactive session error",
+                error=e,
+                topic=topic if "topic" in locals() else "unknown",
+                template=template_choice
+                if "template_choice" in locals()
+                else "unknown",
+            )
             console.print(f"\n[bold red]❌ Error: {e}[/bold red]")
 
             # Ask if user wants to try again
             retry = Confirm.ask("[cyan]Try again?[/cyan]", default=True)
             if not retry:
+                logger.info("User chose not to retry after error")
                 break
 
+    logger.info("Interactive mode session ended")
 
+
+@timed_operation(
+    "single_report", ComponentType.REPORT_GENERATOR, OperationType.REPORT_GENERATION
+)
 async def single_report_mode(topic: str, template: str = "standard"):
     """Generate a single report for the given topic"""
+
+    user_id = f"cli_user_{hash(topic) % 10000}"
+
+    logger.info(
+        "Starting single report generation",
+        topic=topic,
+        template=template,
+        user_id=user_id,
+    )
+
+    # Check system health
+    if not check_system_health():
+        console.print("[red]System is unhealthy. Aborting report generation.[/red]")
+        sys.exit(1)
 
     console.print(f"[green]Generating {template} report on: {topic}[/green]")
 
@@ -175,7 +266,7 @@ async def single_report_mode(topic: str, template: str = "standard"):
             else:
                 config = get_config(template)
                 generator = ImprovedReportGenerator(config)
-                report = await generator.generate_report(topic)
+                report = await generator.generate_report(topic, user_id=user_id)
 
         # Save report
         config = get_config(template)
@@ -193,6 +284,13 @@ async def single_report_mode(topic: str, template: str = "standard"):
         console.print("=" * 80)
 
     except Exception as e:
+        logger.error(
+            "Single report generation failed",
+            error=e,
+            topic=topic,
+            template=template,
+            user_id=user_id,
+        )
         console.print(f"[bold red]❌ Error: {e}[/bold red]")
         sys.exit(1)
 
@@ -223,6 +321,8 @@ Built-in rate limiting prevents API limit issues automatically.""",
 def main():
     """Enhanced main function with argument parsing"""
 
+    logger.info("Application starting")
+
     # Simple argument parsing
     args = sys.argv[1:]
 
@@ -239,14 +339,34 @@ def main():
             args.pop(template_idx)  # Remove --template
             args.pop(template_idx)  # Remove template value
 
-    # Generate report based on arguments
-    if args:
-        # Single report mode
-        topic = " ".join(args)
-        asyncio.run(single_report_mode(topic, template))
-    else:
-        # Interactive mode
-        asyncio.run(interactive_mode())
+    try:
+        # Generate report based on arguments
+        if args:
+            # Single report mode
+            topic = " ".join(args)
+            asyncio.run(single_report_mode(topic, template))
+        else:
+            # Interactive mode
+            asyncio.run(interactive_mode())
+
+    finally:
+        # Show final system health summary
+        health = obs.get_health_status()
+
+        if health["total_operations"] > 0:
+            console.print("\n[dim]📊 Session Summary:[/dim]")
+            console.print(f"[dim]   Operations: {health['total_operations']}[/dim]")
+            console.print(
+                f"[dim]   Success Rate: {(1 - health['overall_error_rate']):.1%}[/dim]"
+            )
+            console.print(f"[dim]   System Health: {health['status'].upper()}[/dim]")
+
+        logger.info(
+            "Application ending",
+            total_operations=health["total_operations"],
+            final_health_status=health["status"],
+            final_error_rate=health["overall_error_rate"],
+        )
 
 
 if __name__ == "__main__":

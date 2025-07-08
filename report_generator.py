@@ -16,6 +16,13 @@ from tavily import TavilyClient
 # Import our custom modules
 from config import ReportConfig, get_config
 from utils.json_parser import parse_report_plan, parse_search_queries
+from utils.observability import (
+    ComponentType,
+    OperationType,
+    get_logger,
+    get_observability_manager,
+    timed_operation,
+)
 from utils.prompt_loader import PromptLoader
 from utils.rate_limiter import get_rate_limiter
 from utils.search_cache import create_search_cache
@@ -44,6 +51,10 @@ class ImprovedReportGenerator:
         """Initialize with optional configuration"""
         self.config = config or get_config("standard")
         self.prompt_loader = PromptLoader(self.config)
+
+        # Initialize structured logging
+        self.logger = get_logger(ComponentType.REPORT_GENERATOR)
+        self.obs = get_observability_manager()
 
         # Initialize API clients
         self.anthropic = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -74,44 +85,102 @@ class ImprovedReportGenerator:
         # Create output directory
         os.makedirs(self.config.get("output_directory"), exist_ok=True)
 
-    async def generate_report(self, topic: str) -> str:
+    @timed_operation(
+        "full_report_generation",
+        ComponentType.REPORT_GENERATOR,
+        OperationType.REPORT_GENERATION,
+    )
+    async def generate_report(self, topic: str, user_id: str = None) -> str:
         """Main entry point - generates complete report"""
         template = self.config.get_prompt_template()
-        print(f"🔍 Generating {template} report on: {topic}")
 
-        # Step 1: Plan the report structure
-        print("📋 Planning report structure...")
-        plan = await self._plan_report(topic)
-        print(f"✅ Created plan with {len(plan.sections)} sections")
+        context = {"topic": topic, "template": template, "user_id": user_id}
 
-        # Step 2: Research and write sections
-        for i, section in enumerate(plan.sections, 1):
-            print(f"📝 Working on section {i}/{len(plan.sections)}: {section.title}")
+        self.logger.info("Starting report generation", **context)
 
-            if section.needs_research:
-                section.content = await self._research_and_write_section(section, topic)
-            else:
-                section.content = await self._write_contextual_section(
-                    section, plan.sections, topic
+        try:
+            # Step 1: Plan the report structure
+            self.logger.info("Planning report structure", **context)
+            plan = await self._plan_report(topic)
+
+            sections_count = len(plan.sections)
+            self.logger.info(
+                "Report structure planned",
+                sections_count=sections_count,
+                section_titles=[s.title for s in plan.sections],
+                **context,
+            )
+
+            # Step 2: Research and write sections
+            for i, section in enumerate(plan.sections, 1):
+                section_context = {
+                    **context,
+                    "section_number": i,
+                    "section_title": section.title,
+                    "total_sections": sections_count,
+                    "needs_research": section.needs_research,
+                }
+
+                self.logger.info("Starting section work", **section_context)
+
+                if section.needs_research:
+                    section.content = await self._research_and_write_section(
+                        section, topic
+                    )
+                else:
+                    section.content = await self._write_contextual_section(
+                        section, plan.sections, topic
+                    )
+
+                self.logger.info(
+                    "Section completed",
+                    content_length=len(section.content),
+                    word_count=len(section.content.split()),
+                    **section_context,
                 )
 
-        # Step 3: Compile final report
-        print("📄 Compiling final report...")
-        final_report = self._compile_report(plan)
-        print("✅ Report generation complete!")
+            # Step 3: Compile final report
+            self.logger.info("Compiling final report", **context)
+            final_report = self._compile_report(plan)
 
-        # Show cache statistics if enabled
-        if self.search_cache and self.config.get("cache_reporting", True):
-            stats = self.search_cache.get_cache_stats()
-            if stats["total_queries"] > 0:
-                print("\n📊 Search Cache Summary:")
-                print(f"   • Total queries: {stats['total_queries']}")
-                print(f"   • Cache hits: {stats['cache_hits']}")
-                print(f"   • Hit rate: {stats['hit_rate']}")
-                if stats["cache_hits"] > 0:
-                    print(f"   • API calls saved: {stats['cache_hits']} 💰")
+            # Calculate report statistics
+            total_words = len(final_report.split())
+            total_chars = len(final_report)
 
-        return final_report
+            self.logger.info(
+                "Report generation completed successfully",
+                total_words=total_words,
+                total_characters=total_chars,
+                sections_completed=sections_count,
+                **context,
+            )
+
+            # Record metrics
+            self.obs.metrics.increment_counter(
+                "reports_generated", tags={"template": template, "success": "true"}
+            )
+            self.obs.metrics.set_gauge("report_word_count", total_words)
+
+            # Show cache statistics if enabled
+            if self.search_cache and self.config.get("cache_reporting", True):
+                stats = self.search_cache.get_cache_stats()
+                if stats["total_queries"] > 0:
+                    self.logger.info(
+                        "Search cache performance summary",
+                        total_queries=stats["total_queries"],
+                        cache_hits=stats["cache_hits"],
+                        hit_rate=stats["hit_rate"],
+                        api_calls_saved=stats["cache_hits"],
+                    )
+
+            return final_report
+
+        except Exception as e:
+            self.obs.metrics.increment_counter(
+                "reports_failed", tags={"template": template, "error": type(e).__name__}
+            )
+            self.logger.error("Report generation failed", error=e, **context)
+            raise
 
     async def _plan_report(self, topic: str) -> ReportPlan:
         """Create report structure using template-specific prompts"""
@@ -141,7 +210,12 @@ class ImprovedReportGenerator:
                 raise ValueError("Failed to parse report plan JSON")
 
         except Exception as e:
-            print(f"⚠️ Error in planning, using fallback: {e}")
+            self.logger.warning(
+                "Planning failed, using fallback",
+                error=e,
+                topic=topic,
+                template=self.config.get_prompt_template(),
+            )
             return self._create_fallback_plan(topic)
 
     def _create_fallback_plan(self, topic: str) -> ReportPlan:
@@ -255,7 +329,12 @@ class ImprovedReportGenerator:
                 raise ValueError("Failed to parse search queries JSON")
 
         except Exception as e:
-            print(f"⚠️ Error generating queries, using fallback: {e}")
+            self.logger.warning(
+                "Search query generation failed, using fallback",
+                error=e,
+                section_title=section.title,
+                topic=topic,
+            )
             return [f"{topic} {section.title}", f"{section.description} 2024"]
 
     async def _search_web(
@@ -279,13 +358,24 @@ class ImprovedReportGenerator:
                     )
                     if cached_results:
                         cache_hits += 1
-                        print(f"💾 Cache hit: {query}")
+                        self.logger.debug(
+                            "Cache hit for search query",
+                            query=query,
+                            topic=topic,
+                            section_type=section_type,
+                            results_count=len(cached_results),
+                        )
                         all_results.extend(cached_results)
                         continue
 
                 # Cache miss - make API call
                 cache_misses += 1
-                print(f"🔍 Searching: {query}")
+                self.logger.info(
+                    "Performing web search",
+                    query=query,
+                    topic=topic,
+                    section_type=section_type,
+                )
 
                 # Create async wrapper for Tavily API call
                 async def tavily_call():
@@ -309,16 +399,26 @@ class ImprovedReportGenerator:
                         )
 
             except Exception as e:
-                print(f"⚠️ Search error for '{query}': {e}")
+                self.logger.warning(
+                    "Search failed for query",
+                    error=e,
+                    query=query,
+                    topic=topic,
+                    section_type=section_type,
+                )
                 continue
 
-                # Show cache performance if enabled
-        if (
-            self.search_cache
-            and self.config.get("cache_reporting", True)
-            and cache_hits > 0
-        ):
-            print(f"📊 Cache performance: {cache_hits} hits, {cache_misses} misses")
+                # Log cache performance if enabled
+        if self.search_cache and self.config.get("cache_reporting", True):
+            self.logger.info(
+                "Search cache performance",
+                cache_hits=cache_hits,
+                cache_misses=cache_misses,
+                total_queries=cache_hits + cache_misses,
+                hit_rate=cache_hits / (cache_hits + cache_misses)
+                if (cache_hits + cache_misses) > 0
+                else 0,
+            )
 
         # Remove duplicates and limit results
         seen_urls = set()
@@ -358,13 +458,23 @@ class ImprovedReportGenerator:
                 optimized_sources
             )
 
-            # Show token usage if reporting is enabled
+            # Log token usage if reporting is enabled
             if self.config.get("token_enable_usage_reporting", True):
-                print(
-                    f"📊 Token usage for {section.title}: {token_usage.usage_percentage:.1f}%"
+                self.logger.info(
+                    "Token usage for section",
+                    section_title=section.title,
+                    usage_percentage=token_usage.usage_percentage,
+                    prompt_tokens=token_usage.prompt_tokens,
+                    sources_tokens=token_usage.sources_tokens,
+                    total_tokens=token_usage.total_tokens,
                 )
+
                 if token_usage.usage_percentage > 85:
-                    print(f"⚠️ High token usage detected for {section.title}")
+                    self.logger.warning(
+                        "High token usage detected",
+                        section_title=section.title,
+                        usage_percentage=token_usage.usage_percentage,
+                    )
         else:
             # Fallback to original method
             sources_text = self._format_sources(search_results)
@@ -389,7 +499,12 @@ class ImprovedReportGenerator:
             return response.content[0].text
 
         except Exception as e:
-            print(f"⚠️ Error writing section: {e}")
+            self.logger.error(
+                "Section writing failed",
+                error=e,
+                section_title=section.title,
+                section_description=section.description,
+            )
             return f"## {section.title}\n\nContent for {section.description} could not be generated due to an error."
 
     def _format_sources(self, search_results: List[Dict]) -> str:
@@ -465,7 +580,13 @@ class ImprovedReportGenerator:
             return response.content[0].text
 
         except Exception as e:
-            print(f"⚠️ Error writing contextual section: {e}")
+            self.logger.error(
+                "Contextual section writing failed",
+                error=e,
+                section_title=section.title,
+                section_description=section.description,
+                section_type=section_type,
+            )
             return f"## {section.title}\n\nThis section could not be generated due to an error."
 
     def _compile_report(self, plan: ReportPlan) -> str:
@@ -545,21 +666,31 @@ async def generate_quick_report(topic: str) -> str:
 # Example usage with different templates
 async def demo_different_templates():
     """Demonstrate different report templates"""
+    from utils.observability import ComponentType, get_logger
+
+    logger = get_logger(ComponentType.REPORT_GENERATOR)
     topic = "Artificial Intelligence in Healthcare"
 
-    print("🏢 Generating Business Report...")
+    logger.info("Starting template demonstration", topic=topic)
+
+    logger.info("Generating business report", template="business")
     business_report = await generate_business_report(topic)
 
-    print("\n🎓 Generating Academic Report...")
+    logger.info("Generating academic report", template="academic")
     academic_report = await generate_academic_report(topic)
 
-    print("\n⚙️ Generating Technical Report...")
+    logger.info("Generating technical report", template="technical")
     technical_report = await generate_technical_report(topic)
 
-    print("\n⚡ Generating Quick Report...")
+    logger.info("Generating quick report", template="quick")
     quick_report = await generate_quick_report(topic)
 
-    print("\n✅ All reports generated successfully!")
+    logger.info(
+        "All template reports generated successfully",
+        topic=topic,
+        templates_generated=["business", "academic", "technical", "quick"],
+    )
+
     return {
         "business": business_report,
         "academic": academic_report,

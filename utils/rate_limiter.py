@@ -9,7 +9,13 @@ import logging
 import time
 from typing import Any, Callable, Dict
 
-logger = logging.getLogger(__name__)
+from .observability import ComponentType, OperationType, get_logger, timed_operation
+
+# Structured logger
+logger = get_logger(ComponentType.RATE_LIMITER)
+
+# Keep fallback for compatibility
+_fallback_logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
@@ -28,27 +34,53 @@ class RateLimiter:
         self.last_anthropic_call = 0.0
         self.last_tavily_call = 0.0
 
+    @timed_operation(
+        "rate_limit_wait", ComponentType.RATE_LIMITER, OperationType.API_CALL
+    )
     async def wait_for_anthropic(self):
         """Ensure minimum delay between Anthropic API calls"""
         current_time = time.time()
         time_since_last = current_time - self.last_anthropic_call
 
+        context = {
+            "api": "anthropic",
+            "time_since_last": time_since_last,
+            "required_delay": self.anthropic_delay,
+        }
+
         if time_since_last < self.anthropic_delay:
             wait_time = self.anthropic_delay - time_since_last
-            logger.debug(f"Rate limiting: waiting {wait_time:.2f}s for Anthropic API")
+            logger.info(
+                "Rate limiting active for Anthropic API", wait_time=wait_time, **context
+            )
             await asyncio.sleep(wait_time)
+        else:
+            logger.debug("No rate limiting needed for Anthropic API", **context)
 
         self.last_anthropic_call = time.time()
 
+    @timed_operation(
+        "rate_limit_wait", ComponentType.RATE_LIMITER, OperationType.API_CALL
+    )
     async def wait_for_tavily(self):
         """Ensure minimum delay between Tavily API calls"""
         current_time = time.time()
         time_since_last = current_time - self.last_tavily_call
 
+        context = {
+            "api": "tavily",
+            "time_since_last": time_since_last,
+            "required_delay": self.tavily_delay,
+        }
+
         if time_since_last < self.tavily_delay:
             wait_time = self.tavily_delay - time_since_last
-            logger.debug(f"Rate limiting: waiting {wait_time:.2f}s for Tavily API")
+            logger.info(
+                "Rate limiting active for Tavily API", wait_time=wait_time, **context
+            )
             await asyncio.sleep(wait_time)
+        else:
+            logger.debug("No rate limiting needed for Tavily API", **context)
 
         self.last_tavily_call = time.time()
 
@@ -64,6 +96,7 @@ class RetryConfig:
         self.max_delay = max_delay
 
 
+@timed_operation("api_retry", ComponentType.RATE_LIMITER, OperationType.API_CALL)
 async def retry_with_exponential_backoff(
     func: Callable, retry_config: RetryConfig, *args, **kwargs
 ) -> Any:
@@ -81,29 +114,53 @@ async def retry_with_exponential_backoff(
     Raises:
         Exception: If all retries are exhausted
     """
+    function_name = getattr(func, "__name__", str(func))
     last_exception = None
 
+    logger.info(
+        "Starting API call with retry logic",
+        function=function_name,
+        max_retries=retry_config.max_retries,
+        base_delay=retry_config.base_delay,
+    )
+
     for attempt in range(retry_config.max_retries + 1):
+        context = {
+            "function": function_name,
+            "attempt": attempt + 1,
+            "max_retries": retry_config.max_retries,
+        }
+
         try:
-            return (
+            logger.debug("Attempting API call", **context)
+
+            result = (
                 await func(*args, **kwargs)
                 if asyncio.iscoroutinefunction(func)
                 else func(*args, **kwargs)
             )
+
+            logger.info("API call successful", **context)
+            return result
+
         except Exception as e:
             last_exception = e
 
             if attempt == retry_config.max_retries:
-                logger.error(
-                    f"All {retry_config.max_retries} retries exhausted for {func.__name__}"
-                )
+                logger.error("All retries exhausted", error=e, **context)
                 raise e
 
             # Calculate exponential backoff delay
             delay = min(retry_config.base_delay * (2**attempt), retry_config.max_delay)
+
             logger.warning(
-                f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying in {delay:.2f}s"
+                "API call failed, retrying",
+                error=e,
+                backoff_delay=delay,
+                will_retry=True,
+                **context,
             )
+
             await asyncio.sleep(delay)
 
     raise last_exception
