@@ -21,6 +21,37 @@ generated_reports/*.md
 # Search cache
 cache/
 
+# Prompt versions and analytics
+prompt_versions/
+prompt_usage.json
+
+# Code quality and testing
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# Development tools
+.pre-commit-config.yaml.bak
+bandit-results.json
+.bandit
+.isort.cfg
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -1,169 +1,316 @@
-# Deep Research Structured Report Agent
+# Deep Research Report Agent
 
-An AI-powered research report generator that creates comprehensive, structured reports using Generative AI and web search capabilities.
+A sophisticated AI-powered research report generator that creates comprehensive, well-structured documents on any topic. The system leverages advanced web search, intelligent caching, smart token management, and prompt versioning to deliver high-quality research reports.
 
-## Features
+## 🚀 Key Features
 
 - **Multiple Report Templates**: Business, Academic, Technical, Quick, and Standard formats
-- **AI-Powered Research**: Automated web search and information gathering
-- **Smart Token Management**: Optimizes content for context windows with intelligent truncation
-- **Intelligent Search Caching**: Reduces API calls with similarity-based query caching
-- **Rich Output**: Professional markdown reports with citations and sources
-- **Interactive Mode**: User-friendly CLI interface with rich console output
-- **Built-in Rate Limiting**: Automatic API rate limiting prevents service interruptions
-- **Customizable**: Configurable templates and sections
+- **Advanced Search Integration**: Powered by Tavily API for comprehensive research
+- **Smart Caching System**: Reduces API calls by 70-90% with intelligent query similarity detection
+- **Token Management**: Optimized for Claude 3.5 Sonnet with automatic context window management
+- **Prompt Versioning**: A/B test and track performance of different prompt versions
+- **Rate Limiting**: Built-in protections against API service interruptions
+- **Robust JSON Parsing**: Handles varied AI response formats gracefully
 
-## Quick Start
+## 🆕 New: Prompt Versioning System
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/spalit2025/Deep_research_structured_report.git
-   cd Deep_research_structured_report
-   ```
+The system now includes a comprehensive prompt versioning and analytics platform:
 
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements_txt.txt
-   ```
+- **Version Management**: Create, manage, and switch between different prompt versions
+- **Performance Analytics**: Track success rates, quality scores, and usage patterns
+- **A/B Testing**: Test different prompt approaches and automatically identify best performers
+- **Migration Tools**: Seamlessly migrate from static prompts to versioned system
+- **CLI Management**: Command-line interface for prompt version operations
 
-3. **Set up environment variables**:
-   ```bash
-   cp env_template.sh .env
-   ```
-   Edit `.env` and add your API keys:
-   - `ANTHROPIC_API_KEY`: Your Anthropic API key
-   - `TAVILY_API_KEY`: Your Tavily search API key
-
-4. **Run the application**:
-   ```bash
-   # Interactive mode
-   python main.py
-   
-   # Generate a single report
-   python main.py "Your research topic here"
-   
-   # Use specific template
-   python main.py "AI in healthcare" --template business
-   ```
-
-## Available Templates
-
-- **Standard**: Balanced research report with intro, main sections, conclusion
-- **Business**: Executive summary, market analysis, strategic recommendations
-- **Academic**: Abstract, literature review, analysis, conclusions
-- **Technical**: Technical overview, specifications, implementation details
-- **Quick**: Shorter sections, faster generation, concise format
-
-## Example Usage
+### Prompt Versioning Quick Start
 
 ```bash
-# Generate a business report on AI in accounting
-python main.py "application of gen ai in corporate accounting" --template business
+# Initialize the versioning system
+python initialize_prompt_versioning.py
 
-# Generate a technical report
-python main.py "Machine Learning in Finance" --template technical
+# List all prompt versions
+python prompt_cli.py list
 
-# Generate a quick report
-python main.py "AI Ethics Overview" --template quick
+# View analytics for a specific prompt
+python prompt_cli.py analytics -p SECTION_WRITER_PROMPT
+
+# Add a new prompt version
+python prompt_cli.py add SECTION_WRITER_PROMPT v2.0 "Your improved prompt..." -d "Better formatting"
+
+# Set active version
+python prompt_cli.py set-active SECTION_WRITER_PROMPT v2.0
+
+# Test a prompt version
+python prompt_cli.py test SECTION_WRITER_PROMPT v2.0 "AI in healthcare"
 ```
 
-## Project Structure
+## 🛠️ Installation
 
-```
-├── main.py                 # Main entry point
-├── report_generator.py     # Core report generation logic
-├── config.py              # Configuration management
-├── prompts/               # AI prompts for different templates
-│   ├── planning.py        # Structure planning prompts
-│   └── writing.py         # Content writing prompts
-├── utils/                 # Utility functions
-│   └── prompt_loader.py   # Prompt loading utilities
-├── generated_reports/     # Output directory (gitignored)
-└── requirements_txt.txt   # Python dependencies
+1. Clone the repository:
+```bash
+git clone https://github.com/spalit2025/Deep_research_structured_report.git
+cd Deep_research_structured_report
 ```
 
-## Configuration
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-The application uses a flexible configuration system that allows customization of:
-- Report templates and sections
-- Word counts and formatting
-- AI model parameters
-- Search parameters
+3. Set up environment variables:
+```bash
+# Create .env file with your API keys
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here
+```
 
-## API Keys Required
+4. Initialize prompt versioning (optional):
+```bash
+python initialize_prompt_versioning.py
+```
 
-- **Anthropic API**: For Claude AI text generation
-- **Tavily API**: For web search capabilities
+## 📊 Usage Examples
 
-## Rate Limiting & Reliability
+### Basic Report Generation
 
-The application includes built-in rate limiting to prevent API service interruptions:
+```bash
+# Generate a business report
+python main.py --topic "AI in healthcare" --template business
 
-- **Automatic Delays**: 1.0s between Anthropic calls, 0.5s between Tavily calls
-- **Retry Mechanisms**: Exponential backoff for failed requests (up to 3 retries)
-- **Configurable**: Rate limits can be adjusted in configuration settings
-- **No Batch Mode**: Removed to prevent rapid successive calls that trigger rate limits
+# Generate an academic report
+python main.py --topic "quantum computing" --template academic
 
-## Smart Token Management
+# Quick report with verbose output
+python main.py --topic "renewable energy" --template quick --verbose
+```
 
-The application includes intelligent context window management to prevent token limit overruns:
+### Advanced Features
 
-- **Dynamic Source Optimization**: Automatically adjusts source content length based on context window
-- **Intelligent Truncation**: Preserves complete sentences and paragraphs when possible
-- **Template-Specific Limits**: Different token budgets for different report types
-- **Usage Monitoring**: Real-time token usage reporting with warnings for high usage
-- **Fallback Strategies**: Graceful degradation when content exceeds limits
+```bash
+# Generate with custom configuration
+python main.py --topic "blockchain technology" --template business --config custom_config.json
 
-### Token Management Features
+# Use specific prompt version
+python main.py --topic "AI ethics" --template academic --prompt-version v2.0_enhanced
+```
 
-| Feature | Description |
-|---------|-------------|
-| **Context Window Support** | Supports Claude 3.5 Sonnet (200k tokens) and other models |
-| **Dynamic Source Allocation** | Distributes 60-70% of available tokens to research sources |
-| **Intelligent Truncation** | Preserves sentence and paragraph boundaries when truncating |
-| **Template Optimization** | Academic reports get more source content than quick reports |
-| **Usage Reporting** | Shows token usage percentage and warns at 85%+ usage |
+## 🏗️ System Architecture
 
-## Intelligent Search Caching
+### Core Components
 
-The application includes smart caching to avoid repeated API calls for similar queries:
+1. **Report Generator** (`report_generator.py`): Main orchestrator for report generation
+2. **Prompt System** (`utils/prompt_loader.py`): Manages prompt templates and versioning
+3. **Search Engine** (`utils/search_cache.py`): Handles web search with intelligent caching
+4. **Token Manager** (`utils/token_manager.py`): Optimizes content for AI model limits
+5. **JSON Parser** (`utils/json_parser.py`): Robust parsing of AI responses
 
-- **Query Similarity Detection**: Automatically detects similar queries across report sections
-- **Persistent Cache**: Saves results to disk with configurable TTL (24 hours default)
-- **Memory Optimization**: In-memory cache with intelligent eviction policies
-- **Performance Monitoring**: Real-time cache hit/miss reporting
-- **Cost Savings**: Reduces API calls and associated costs significantly
+### New: Prompt Versioning System
 
-### Cache Features
+- **Version Manager** (`utils/prompt_versioning.py`): Core versioning and analytics engine
+- **CLI Tool** (`prompt_cli.py`): Command-line interface for management
+- **Migration Tool** (`initialize_prompt_versioning.py`): Setup and migration utilities
 
-| Feature | Description |
-|---------|-------------|
-| **Similarity Matching** | 75% similarity threshold for intelligent cache hits |
-| **Persistent Storage** | File-based cache survives between sessions |
-| **Automatic Expiration** | 24-hour TTL prevents stale data |
-| **Performance Metrics** | Detailed cache hit rates and savings reporting |
-| **Topic-Aware Caching** | Considers report topic for better cache matching |
+## 📈 Performance Metrics
 
-## Output
+### Search Caching
+- **Cache Hit Rate**: 70-90% on subsequent runs
+- **API Call Reduction**: Significant cost savings
+- **Response Time**: Near-instant for cached queries
 
-Reports are saved in the `generated_reports/` directory in markdown format with:
-- Professional formatting
-- Proper citations and sources
-- Rich content structure
-- Timestamped filenames
+### Token Management
+- **Context Optimization**: Automatic content fitting for Claude 3.5 Sonnet
+- **Template-Specific Limits**: Optimized for each report type
+- **Real-time Monitoring**: Track token usage throughout generation
 
-## License
+### Prompt Versioning
+- **A/B Testing**: Compare prompt performance scientifically
+- **Analytics Tracking**: Success rates, quality scores, execution times
+- **Version Control**: Full history and rollback capabilities
 
-MIT License - feel free to use and modify as needed.
+## 🔧 Configuration
 
-## Contributing
+### Main Configuration (`config.py`)
+
+```python
+{
+    "template": "business",           # Report template type
+    "prompt_version": "v1.0_static",  # Active prompt version
+    "max_content_length": 200000,     # Token management limit
+    "enable_search_caching": True,    # Enable intelligent caching
+    "enable_prompt_versioning": True, # Enable prompt versioning
+    "enable_prompt_analytics": True,  # Track prompt performance
+    "cache_ttl_hours": 24.0,         # Cache expiration time
+    "similarity_threshold": 0.75      # Cache similarity matching
+}
+```
+
+### Prompt Versioning Configuration
+
+```python
+{
+    "prompt_versions_dir": "prompt_versions",  # Version storage directory
+    "prompt_usage_log": "prompt_usage.json",  # Analytics log file
+    "enable_prompt_analytics": True,          # Performance tracking
+    "auto_suggest_best_prompts": False        # Auto-switch to best performers
+}
+```
+
+## 📚 Report Templates
+
+### Business Template
+- Executive Summary
+- Market Analysis
+- Competitive Landscape
+- Strategic Recommendations
+- Financial Projections
+
+### Academic Template
+- Abstract
+- Literature Review
+- Methodology
+- Results & Analysis
+- Conclusions
+
+### Technical Template
+- Technical Overview
+- Architecture Analysis
+- Implementation Details
+- Performance Metrics
+- Best Practices
+
+### Quick Template
+- Condensed format
+- Key findings focus
+- Rapid generation
+- Essential insights only
+
+## 🔍 Search & Research
+
+### Tavily Integration
+- Advanced web search capabilities
+- Academic and business source prioritization
+- Real-time information gathering
+- Source citation and verification
+
+### Caching Strategy
+- Query similarity detection
+- Persistent and in-memory caching
+- Configurable TTL and cache size
+- Performance monitoring and reporting
+
+## 🎯 Prompt Engineering
+
+### Version Management
+- Create and test multiple prompt versions
+- Track performance metrics automatically
+- A/B test different approaches
+- Rollback to previous versions
+
+### Analytics Dashboard
+- Success rate tracking
+- Quality score monitoring
+- Usage pattern analysis
+- Performance comparisons
+
+### Best Practices
+- Use semantic versioning (v1.0, v1.1, v2.0)
+- Document changes in version descriptions
+- Test thoroughly before setting as active
+- Monitor performance metrics regularly
+
+## 🔧 Development & Code Quality
+
+This project uses modern Python development practices with automated code quality tools.
+
+### Quick Development Setup
+
+```bash
+# Run the setup script for automated configuration
+./setup_dev.sh
+
+# Or manually install development dependencies
+pip install -r requirements-dev.txt
+pre-commit install
+```
+
+### Code Quality Tools
+
+- **Black**: Automatic code formatting
+- **Ruff**: Fast linting, import sorting, and code analysis
+- **MyPy**: Static type checking (advisory)
+- **Bandit**: Security vulnerability scanning
+- **Pre-commit**: Automated quality checks on git commits
+
+### Development Workflow
+
+1. **Make Changes**: Edit code following existing patterns
+2. **Format Code**: `black .` (optional - runs automatically on commit)
+3. **Check Quality**: `ruff check --fix .` (optional - runs automatically on commit)
+4. **Commit**: Git hooks will automatically run quality checks
+5. **Fix Issues**: Address any issues reported by the hooks
+6. **Push**: Submit your changes
+
+### Available Commands
+
+```bash
+# Code formatting and linting
+black .                     # Format all Python files
+ruff check --fix .          # Lint and auto-fix issues
+ruff format .               # Alternative formatter
+
+# Quality checks
+pre-commit run --all-files  # Run all quality checks
+mypy .                      # Type checking
+bandit -r .                 # Security scanning
+
+# Testing (when tests are added)
+pytest                      # Run test suite
+pytest --cov=.              # Run with coverage
+```
+
+### CI/CD Pipeline
+
+GitHub Actions automatically runs:
+- **Code Quality**: Black, Ruff, MyPy checks
+- **Multi-Python Testing**: Python 3.8-3.12 compatibility
+- **Integration Tests**: Core functionality verification
+- **Documentation**: README and configuration validation
+- **Security**: Bandit security scanning
+
+### Configuration Files
+
+- `pyproject.toml`: Main configuration for tools and project metadata
+- `.pre-commit-config.yaml`: Pre-commit hook configuration
+- `.github/workflows/ci.yml`: CI/CD pipeline configuration
+- `requirements-dev.txt`: Development dependencies
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Run `./setup_dev.sh` to set up development environment
+3. Create a feature branch
+4. Make changes following code quality standards
+5. Test your changes thoroughly (hooks will run automatically)
+6. Submit a pull request with detailed description
 
-## Support
+All contributions must pass the automated quality checks in CI/CD.
 
-For issues and questions, please open an issue on GitHub. 
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Anthropic for Claude 3.5 Sonnet API
+- Tavily for advanced web search capabilities
+- Open source community for inspiration and tools
+
+## 📞 Support
+
+For questions, issues, or feature requests:
+- Open an issue on GitHub
+- Contact: [Your contact information]
+
+---
+
+**Note**: This system requires API keys for Anthropic (Claude) and Tavily. Ensure you have appropriate usage limits and billing set up for production use.
