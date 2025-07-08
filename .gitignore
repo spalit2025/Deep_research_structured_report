@@ -63,3 +63,6 @@ OBSERVABILITY_INTEGRATION_COMPLETE.md
 
 # Temporary test files
 run_tests.py
+
+# Disabled CI/CD workflow (not currently used)
+.github/workflows/ci.yml.disabled

@@ -6,7 +6,7 @@ AI-powered research report generator that creates comprehensive, well-structured
 
 - **Multiple Report Templates**: Business, Academic, Technical, Quick, and Standard formats
 - **Advanced Search Integration**: Powered by Tavily API for comprehensive research
-- **Smart Caching System**: Reduces API calls by 70-90% with intelligent query similarity detection
+- **Smart Caching System**: Reduces API calls with intelligent query similarity detection
 - **Token Management**: Optimized for Claude 3.5 Sonnet with automatic context window management
 - **Prompt Versioning**: A/B test and track performance of different prompt versions
 - **Rate Limiting**: Built-in protections against API service interruptions
@@ -268,20 +268,10 @@ pytest                      # Run test suite
 pytest --cov=.              # Run with coverage
 ```
 
-### CI/CD Pipeline
-
-GitHub Actions automatically runs:
-- **Code Quality**: Black, Ruff, MyPy checks
-- **Multi-Python Testing**: Python 3.8-3.12 compatibility
-- **Integration Tests**: Core functionality verification
-- **Documentation**: README and configuration validation
-- **Security**: Bandit security scanning
-
 ### Configuration Files
 
 - `pyproject.toml`: Main configuration for tools and project metadata
 - `.pre-commit-config.yaml`: Pre-commit hook configuration
-- `.github/workflows/ci.yml`: CI/CD pipeline configuration
 - `requirements-dev.txt`: Development dependencies
 
 ## 🤝 Contributing
@@ -290,10 +280,10 @@ GitHub Actions automatically runs:
 2. Run `./setup_dev.sh` to set up development environment
 3. Create a feature branch
 4. Make changes following code quality standards
-5. Test your changes thoroughly (hooks will run automatically)
+5. Test your changes thoroughly (pre-commit hooks will run automatically)
 6. Submit a pull request with detailed description
 
-All contributions must pass the automated quality checks in CI/CD.
+All contributions should follow the established code quality standards.
 
 ## 📄 License
 
