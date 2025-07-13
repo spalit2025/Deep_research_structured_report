@@ -1,4 +1,4 @@
-# Deep Research Report Agent
+# Deep Research Agent
 
 AI-powered research report generator that creates comprehensive, well-structured documents on any topic. The system leverages advanced web search, intelligent caching, smart token management, and prompt versioning to deliver high-quality research reports.
 
@@ -48,8 +48,8 @@ python prompt_cli.py test SECTION_WRITER_PROMPT v2.0 "AI in healthcare"
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/spalit2025/Deep_research_structured_report.git
-cd Deep_research_structured_report
+git clone https://github.com/spalit2025/Deep_research_agent.git
+cd Deep_research_agent
 ```
 
 2. Install dependencies:
