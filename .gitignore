@@ -66,3 +66,6 @@ run_tests.py
 
 # Disabled CI/CD workflow (not currently used)
 .github/workflows/ci.yml.disabled
+
+# Editor-specific files
+.cursor/

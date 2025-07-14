@@ -44,54 +44,72 @@ python prompt_cli.py set-active SECTION_WRITER_PROMPT v2.0
 python prompt_cli.py test SECTION_WRITER_PROMPT v2.0 "AI in healthcare"
 ```
 
-## 🛠️ Installation
+## 🚀 Getting Started
 
-1. Clone the repository:
+Follow these steps to set up and run the project locally.
+
+### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/spalit2025/Deep_research_agent.git
 cd Deep_research_agent
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+### 2. Set Up Environment Variables
 
-3. Set up environment variables:
-```bash
-# Create .env file with your API keys
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-TAVILY_API_KEY=your_tavily_api_key_here
-```
+This project requires API keys for Anthropic and Tavily.
 
-4. Initialize prompt versioning (optional):
+1.  Create a `.env` file in the project root by copying the template:
+    ```bash
+    cp env_template.sh .env
+    ```
+2.  Edit the `.env` file and add your API keys. Refer to [env_template.sh](mdc:env_template.sh) for all required variables.
+    ```
+    ANTHROPIC_API_KEY="your_anthropic_api_key_here"
+    TAVILY_API_KEY="your_tavily_api_key_here"
+    ```
+
+### 3. Install Dependencies
+
+The project uses `pyproject.toml` to manage dependencies. To install the application and its development tools, run:
+
+```bash
+pip install -e .[dev]
+```
+This command installs all main dependencies plus the development dependencies specified in [pyproject.toml](mdc:pyproject.toml).
+
+### 4. Initialize Prompt Versioning (Optional)
+
+If you plan to use the prompt versioning system, run the initialization script:
 ```bash
 python initialize_prompt_versioning.py
 ```
 
-## 📊 Usage Examples
+## 📊 Usage
 
-### Basic Report Generation
+### Running the Report Generator
+
+The primary way to run the application is via the `deep-research` command, which is an entry point defined in [pyproject.toml](mdc:pyproject.toml).
 
 ```bash
-# Generate a business report
-python main.py --topic "AI in healthcare" --template business
+# Generate a business report on "AI in healthcare"
+deep-research --topic "AI in healthcare" --template business
 
-# Generate an academic report
-python main.py --topic "quantum computing" --template academic
-
-# Quick report with verbose output
-python main.py --topic "renewable energy" --template quick --verbose
+# Generate an academic report with verbose output
+deep-research --topic "quantum computing" --template academic --verbose
 ```
 
-### Advanced Features
+### Advanced Usage
 
 ```bash
-# Generate with custom configuration
-python main.py --topic "blockchain technology" --template business --config custom_config.json
+# Generate a quick report
+deep-research --topic "renewable energy" --template quick
 
-# Use specific prompt version
-python main.py --topic "AI ethics" --template academic --prompt-version v2.0_enhanced
+# Generate with a custom configuration file
+deep-research --topic "blockchain technology" --template business --config custom_config.json
+
+# Use a specific prompt version (if versioning is active)
+deep-research --topic "AI ethics" --template academic --prompt-version v2.0_enhanced
 ```
 
 ## 🏗️ System Architecture
@@ -218,61 +236,29 @@ python main.py --topic "AI ethics" --template academic --prompt-version v2.0_enh
 - Test thoroughly before setting as active
 - Monitor performance metrics regularly
 
-## 🔧 Development & Code Quality
+## 🔧 Development and Code Quality
 
-This project uses modern Python development practices with automated code quality tools.
+This project uses a modern Python development stack with automated tools to ensure code quality, consistency, and correctness. All tool configurations are defined in [pyproject.toml](mdc:pyproject.toml).
 
-### Quick Development Setup
+### Development Setup
 
-```bash
-# Run the setup script for automated configuration
-./setup_dev.sh
+1.  **Follow the Getting Started Guide**: First, complete the setup in the **Getting Started** section, including cloning the repo and installing dependencies with `pip install -e .[dev]`.
 
-# Or manually install development dependencies
-pip install -r requirements-dev.txt
-pre-commit install
-```
+2.  **Install Pre-commit Hooks**:
+    ```bash
+    pre-commit install
+    ```
+    This will run `black`, `ruff`, and other checks automatically every time you commit changes, enforcing the project's coding standards.
 
 ### Code Quality Tools
 
-- **Black**: Automatic code formatting
-- **Ruff**: Fast linting, import sorting, and code analysis
-- **MyPy**: Static type checking (advisory)
-- **Bandit**: Security vulnerability scanning
-- **Pre-commit**: Automated quality checks on git commits
+The following tools are used to maintain code quality:
 
-### Development Workflow
+- **Formatting**: `black` for consistent code style.
+- **Linting**: `ruff` for fast and comprehensive code analysis.
+- **Type Checking**: `mypy` for static type checking.
 
-1. **Make Changes**: Edit code following existing patterns
-2. **Format Code**: `black .` (optional - runs automatically on commit)
-3. **Check Quality**: `ruff check --fix .` (optional - runs automatically on commit)
-4. **Commit**: Git hooks will automatically run quality checks
-5. **Fix Issues**: Address any issues reported by the hooks
-6. **Push**: Submit your changes
-
-### Available Commands
-
-```bash
-# Code formatting and linting
-black .                     # Format all Python files
-ruff check --fix .          # Lint and auto-fix issues
-ruff format .               # Alternative formatter
-
-# Quality checks
-pre-commit run --all-files  # Run all quality checks
-mypy .                      # Type checking
-bandit -r .                 # Security scanning
-
-# Testing (when tests are added)
-pytest                      # Run test suite
-pytest --cov=.              # Run with coverage
-```
-
-### Configuration Files
-
-- `pyproject.toml`: Main configuration for tools and project metadata
-- `.pre-commit-config.yaml`: Pre-commit hook configuration
-- `requirements-dev.txt`: Development dependencies
+All tools are configured in `pyproject.toml` and are run automatically via the pre-commit hooks.
 
 ## 🤝 Contributing
 
